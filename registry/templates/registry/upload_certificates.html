@@ -1,0 +1,301 @@
+{% extends 'registry/base.html' %}
+{% load static %}
+
+{% block content %}
+<style>
+  body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f7fb;
+    margin: 0;
+    padding: 0;
+  }
+
+  .page-header {
+    text-align: center;
+    margin-top: 20px;
+    position: relative;
+  }
+
+  .page-header img {
+    height: 70px;
+  }
+
+  .logout-container {
+    position: absolute;
+    top: 0;
+    right: 20px;
+  }
+
+  .logout-btn {
+    background-color: #ff8800;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+
+  .logout-btn:hover {
+    background-color: #e67300;
+  }
+
+  .page-header h2 {
+    margin-top: 10px;
+    color: #0b1a39;
+    font-size: 26px;
+    font-weight: bold;
+  }
+
+  .container {
+    max-width: 1100px;
+    margin: 30px auto;
+    padding: 20px;
+  }
+
+  .card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    padding: 25px 30px;
+    margin-bottom: 30px;
+  }
+
+  .card h3 {
+    color: #0b1a39;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #ff8800;
+    display: inline-block;
+    padding-bottom: 4px;
+  }
+
+  button[type="submit"] {
+    background-color: #0b1a39;
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+
+  button[type="submit"]:hover {
+    background-color: #162d63;
+  }
+
+  .search-bar {
+    margin-bottom: 20px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+  }
+
+  .search-bar input {
+    padding: 8px;
+    width: 260px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    margin-right: 8px;
+  }
+
+  .search-bar button {
+    background-color: #ff8800;
+    color: white;
+    border: none;
+    padding: 8px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+
+  .search-bar button:hover {
+    background-color: #e67300;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  th, td {
+    border: 1px solid #ddd;
+    padding: 10px 12px;
+    text-align: left;
+  }
+
+  th {
+    background-color: #0b1a39;
+    color: white;
+  }
+
+  tr:nth-child(even) {
+    background-color: #f8f8f8;
+  }
+
+  tr:hover {
+    background-color: #eef5ff;
+  }
+
+  .pagination {
+    text-align: center;
+    margin-top: 20px;
+  }
+
+  .pagination a, .pagination span {
+    display: inline-block;
+    padding: 8px 12px;
+    margin: 2px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    text-decoration: none;
+    color: #0b1a39;
+  }
+
+  .pagination .current {
+    background-color: #ff8800;
+    color: white;
+    border: none;
+  }
+
+  .report-buttons {
+    text-align: center;
+    margin-top: 30px;
+  }
+
+  .report-buttons button {
+    padding: 10px 18px;
+    border-radius: 6px;
+    border: none;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    margin: 8px;
+  }
+
+  .btn-dark {
+    background-color: #0b1a39;
+  }
+
+  .btn-dark:hover {
+    background-color: #162d63;
+  }
+
+  .btn-orange {
+    background-color: #ff8800;
+  }
+
+  .btn-orange:hover {
+    background-color: #e67300;
+  }
+</style>
+
+<div class="page-header">
+  <div class="logout-container">
+    <form method="post" action="{% url 'logout' %}">
+      {% csrf_token %}
+      <button type="submit" class="logout-btn">Logout</button>
+    </form>
+  </div>
+
+  <img src="{% static 'registry/logo.png' %}" alt="Logo">
+  <h2>Certificate & Result Slip Tracker</h2>
+</div>
+
+<div class="container">
+
+  <!-- Search Section -->
+  <div class="card">
+    <div class="search-bar">
+      <form method="get">
+        <input type="text" name="q" placeholder="Search by name or index number" value="{{ search_query }}">
+        <button type="submit">Search</button>
+      </form>
+    </div>
+
+  <!-- Upload Section -->
+  <div class="card">
+    <h3>Upload Certificate Excel File</h3>
+    <form action="{% url 'upload_excel' %}" method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      {{ form.as_p }}
+      <button type="submit">Upload</button>
+    </form>
+  </div>
+
+  
+
+    {% if page_obj %}
+    <h3>Uploaded Certificates</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Index No</th>
+          <th>Name</th>
+          <th>Programme</th>
+          <th>Department</th>
+          <th>Slip No</th>
+          <th>Status</th>
+          <th>Collected At</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for rec in page_obj %}
+        <tr>
+          <td>{{ rec.index_number }}</td>
+          <td>{{ rec.name }}</td>
+          <td>{{ rec.programme }}</td>
+          <td>{{ rec.department }}</td>
+          <td>{{ rec.slip_number }}</td>
+          <td>{{ rec.status }}</td>
+          <td>{{ rec.collected_at|date:"Y-m-d H:i" }}</td>
+          <td>
+            {% if rec.status == "Not Collected" %}
+            <form action="{% url 'collect_certificate' rec.pk %}?q={{ search_query }}" method="post" style="display:inline;">
+              {% csrf_token %}
+              <button type="submit" style="background-color:#0b1a39; color:white; border:none; padding:6px 12px; border-radius:5px; cursor:pointer;">Collect</button>
+            </form>
+            {% else %}
+            ✅ Collected
+            {% endif %}
+          </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="8">No records found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <div class="pagination">
+      {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}">&laquo; Prev</a>
+      {% endif %}
+
+      <span class="current">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+      {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&q={{ search_query }}{% endif %}">Next &raquo;</a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Report Section -->
+  <div class="card">
+    <h3>Generate Reports</h3>
+    <div class="report-buttons">
+      <form method="get" action="{% url 'generate_report' %}" style="display:inline;">
+        <input type="hidden" name="status" value="Collected">
+        <button type="submit" class="btn-dark">Download Collected Certificates Report</button>
+      </form>
+
+      <form method="get" action="{% url 'generate_report' %}" style="display:inline;">
+        <input type="hidden" name="status" value="Not Collected">
+        <button type="submit" class="btn-orange">Download Not Collected Certificates Report</button>
+      </form>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+

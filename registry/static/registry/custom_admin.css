@@ -1,0 +1,97 @@
+/* ===== Certificate Tracker Admin Theme ===== */
+
+/* --- Header (top bar) --- */
+#header {
+    background-color: #002B5C; /* Dark Blue */
+    color: #ffffff;
+}
+
+/* Header title text */
+#header h1 a {
+    color: #ffffff !important;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* --- Sidebar and Module titles --- */
+.module caption {
+    background-color: #FF8C00; /* Orange Accent 2 */
+    color: #ffffff;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+/* --- Buttons --- */
+.button, input[type=submit], input[type=button], .submit-row input {
+    background-color: #FF8C00 !important; /* Orange Accent */
+    border: none !important;
+    color: white !important;
+    font-weight: 600;
+    border-radius: 6px;
+    transition: background-color 0.3s ease;
+}
+
+.button:hover, input[type=submit]:hover, .submit-row input:hover {
+    background-color: #002B5C !important; /* Dark blue hover */
+    color: #ffffff !important;
+}
+
+/* --- Links --- */
+a:link, a:visited {
+    color: #002B5C;
+}
+
+a:hover {
+    color: #FF8C00;
+    text-decoration: underline;
+}
+
+/* --- Form fields --- */
+input, select, textarea {
+    border: 1px solid #cccccc;
+    border-radius: 4px;
+    font-family: "Segoe UI", Arial, sans-serif;
+    padding: 5px;
+}
+
+/* --- Table headers --- */
+thead th {
+    background-color: #002B5C;
+    color: #ffffff;
+}
+
+/* --- Highlight selected rows --- */
+tr.selected {
+    background-color: #FFF0E1 !important; /* light orange background */
+}
+
+/* --- Login Page --- */
+body.login {
+    background-color: #f5f7fa;
+    font-family: "Segoe UI", Arial, sans-serif;
+}
+
+.login #header {
+    background-color: #002B5C;
+}
+
+.login .submit-row input {
+    background-color: #FF8C00 !important;
+    border: none;
+}
+
+.login .submit-row input:hover {
+    background-color: #002B5C !important;
+}
+
+/* --- General text and fonts --- */
+body, input, select, textarea {
+    font-family: "Segoe UI", Arial, sans-serif;
+    color: #222;
+}
+
+#content h1 {
+    color: #002B5C;
+    font-weight: 600;
+}

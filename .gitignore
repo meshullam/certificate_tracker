@@ -1,0 +1,179 @@
+# ==================================================================
+# Certificate Tracker - .gitignore
+# ==================================================================
+# This file tells Git what NOT to track in version control
+# Place this file in your project root (next to manage.py)
+
+# ============== CRITICAL: Environment & Secrets ==============
+# NEVER commit these files - they contain passwords and secret keys
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+
+# ============== Python ==============
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments (different naming conventions)
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+myenv/
+.venv
+
+# ============== Django ==============
+# Database - SQLite (if you ever test locally)
+*.sqlite3
+*.db
+
+# Django migrations - KEEP the __init__.py and numbered migrations
+# but ignore any auto-generated ones during development
+# (Comment out if you want to track all migrations)
+# */migrations/*.py
+# !*/migrations/__init__.py
+
+# Static files (collected by collectstatic)
+/staticfiles/
+/static_collected/
+/static_root/
+
+# Media files (user uploads)
+/media/
+/mediafiles/
+
+# Django local settings (if you use them)
+local_settings.py
+
+# Django logs
+*.log
+logs/
+django_logs/
+
+# ============== IDE / Editor ==============
+# VS Code
+.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# PyCharm
+.idea/
+*.iml
+*.iws
+.idea_modules/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+*.swp
+*.swo
+*~
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+
+# ============== Operating System ==============
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+.directory
+.Trash-*
+
+# ============== Testing ==============
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+coverage.xml
+*.cover
+.cache
+
+# ============== Documentation ==============
+# Build directories for documentation
+docs/_build/
+site/
+
+# ============== Misc ==============
+# Backup files
+*.bak
+*.backup
+*.tmp
+*.temp
+
+# Compressed files (unless needed)
+*.zip
+*.tar.gz
+*.rar
+
+# Excel temporary files
+~$*.xlsx
+~$*.xls
+
+# Node modules (if you add frontend tooling later)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# ============== PROJECT SPECIFIC ==============
+# Any uploaded Excel files during development
+uploads/
+temp_uploads/
+
+# Local testing data
+test_data/
+sample_data/
+
+# ==================================================================
+# END OF .gitignore
+# ==================================================================
+
+# NOTE: To ignore files that are already tracked, run:
+# git rm --cached <file>
+# Then commit the change

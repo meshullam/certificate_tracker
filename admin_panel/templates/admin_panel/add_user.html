@@ -1,0 +1,31 @@
+{% extends "admin_panel/base.html" %}
+{% block content %}
+<div class="container mt-4">
+  <h3>Add User</h3>
+  <form method="post">
+    {% csrf_token %}
+    <div class="mb-3">
+      <label>Username</label>
+      <input class="form-control" name="username" required>
+    </div>
+    <div class="mb-3">
+      <label>Email</label>
+      <input class="form-control" name="email" type="email">
+    </div>
+    <div class="mb-3">
+      <label>Password</label>
+      <input class="form-control" name="password" type="password" required>
+    </div>
+    <div class="form-check mb-3">
+      <input class="form-check-input" type="checkbox" id="is_staff" name="is_staff">
+      <label class="form-check-label" for="is_staff">Staff (can log in to registry UI)</label>
+    </div>
+    <div class="form-check mb-3">
+      <input class="form-check-input" type="checkbox" id="is_active" name="is_active" checked>
+      <label class="form-check-label" for="is_active">Active</label>
+    </div>
+    <button class="btn btn-primary">Create User</button>
+    <a href="{% url 'manage_users' %}" class="btn btn-secondary">Cancel</a>
+  </form>
+</div>
+{% endblock %}

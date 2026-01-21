@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+
+
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Certificate Tracker{% endblock %}</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'registry/admin.css' %}">
+</head>
+<body>
+    <header style="background-color: #0d2040; color: white; padding: 15px;">
+        <h1>Certificate & Result Slip Tracker</h1>
+    </header>
+
+    <main style="padding: 20px;">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <footer style="background-color: #ff8c00; color: white; text-align: center; padding: 10px; position: fixed; bottom: 0; width: 100%;">
+        &copy; {{ current_year }} Registry Department | The Polytechnic
+    </footer>
+</body>
+</html>
