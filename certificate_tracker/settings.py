@@ -1,33 +1,40 @@
-
+"""
+Django settings for certificate_tracker project.
+"""
 
 from pathlib import Path
 import os
 from dotenv import load_dotenv
 
-BASE_DIR = Path(__file__).resolve().parent.parent
-
-# Load .env from project root (where manage.py is)
-load_dotenv(BASE_DIR / '.env')
-print("DB password is:", os.getenv("DB_PASSWORD"))
-
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# Load environment variables from .env file
+load_dotenv(BASE_DIR / '.env')
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
+# ==================================================================
+# SECURITY SETTINGS
+# ==================================================================
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-k50c7g=qy=xb(6&kv43x+0+h7hmlu=)q=@6o5ks*3!d0r=**y3'
+SECRET_KEY = os.getenv('SECRET_KEY')
+
+# Validate that SECRET_KEY is set
+if not SECRET_KEY:
+    raise ValueError(
+        "SECRET_KEY is not set in .env file! "
+        "Generate one with: python -c \"from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())\""
+    )
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = []
+# Hosts/domain names that this Django site can serve
+ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 
-
-# Application definition
+# ==================================================================
+# APPLICATION DEFINITION
+# ==================================================================
 
 INSTALLED_APPS = [
     'django.contrib.admin',
@@ -56,7 +63,7 @@ ROOT_URLCONF = 'certificate_tracker.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],  # leave empty for now
+        'DIRS': [],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -69,13 +76,11 @@ TEMPLATES = [
     },
 ]
 
-
-
 WSGI_APPLICATION = 'certificate_tracker.wsgi.application'
 
-
-# Database
-# https://docs.djangoproject.com/en/5.2/ref/settings/#databases
+# ==================================================================
+# DATABASE
+# ==================================================================
 
 DATABASES = {
     'default': {
@@ -83,14 +88,21 @@ DATABASES = {
         'NAME': os.getenv('DB_NAME'),
         'USER': os.getenv('DB_USER'),
         'PASSWORD': os.getenv('DB_PASSWORD'),
-        'HOST': os.getenv('DB_HOST'),
-        'PORT': os.getenv('DB_PORT'),
+        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'PORT': os.getenv('DB_PORT', '5432'),
     }
 }
 
+# Validate database configuration
+if not all([os.getenv('DB_NAME'), os.getenv('DB_USER'), os.getenv('DB_PASSWORD')]):
+    raise ValueError(
+        "Database configuration incomplete! "
+        "Please set DB_NAME, DB_USER, and DB_PASSWORD in .env file."
+    )
 
-# Password validation
-# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
+# ==================================================================
+# PASSWORD VALIDATION
+# ==================================================================
 
 AUTH_PASSWORD_VALIDATORS = [
     {
@@ -98,6 +110,9 @@ AUTH_PASSWORD_VALIDATORS = [
     },
     {
         'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator',
+        'OPTIONS': {
+            'min_length': 8,
+        }
     },
     {
         'NAME': 'django.contrib.auth.password_validation.CommonPasswordValidator',
@@ -107,34 +122,117 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
-# Internationalization
-# https://docs.djangoproject.com/en/5.2/topics/i18n/
+# ==================================================================
+# INTERNATIONALIZATION
+# ==================================================================
 
 LANGUAGE_CODE = 'en-us'
-
 TIME_ZONE = 'UTC'
-
 USE_I18N = True
-
 USE_TZ = True
 
-
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/5.2/howto/static-files/
+# ==================================================================
+# STATIC FILES (CSS, JavaScript, Images)
+# ==================================================================
 
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [
-    os.path.join(BASE_DIR, 'registry', 'static'),
+    BASE_DIR / 'registry' / 'static',
 ]
-STATIC_ROOT = BASE_DIR / "staticfiles"
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# Default primary key field type
-# https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
+# ==================================================================
+# MEDIA FILES (User Uploads)
+# ==================================================================
+
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# ==================================================================
+# DEFAULT PRIMARY KEY FIELD TYPE
+# ==================================================================
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# ==================================================================
+# AUTHENTICATION
+# ==================================================================
 
 LOGIN_URL = 'login'
 LOGIN_REDIRECT_URL = 'upload_excel'
 LOGOUT_REDIRECT_URL = 'login'
+
+# ==================================================================
+# LOGGING CONFIGURATION
+# ==================================================================
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'filters': {
+        'require_debug_true': {
+            '()': 'django.utils.log.RequireDebugTrue',
+        },
+    },
+    'handlers': {
+        'console': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple'
+        },
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': BASE_DIR / 'logs' / 'django.log',
+            'formatter': 'verbose',
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'registry': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+        'admin_panel': {
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+}
+
+# ==================================================================
+# SECURITY SETTINGS (Production)
+# ==================================================================
+# Uncomment these when deploying to production
+
+# if not DEBUG:
+#     SECURE_SSL_REDIRECT = True
+#     SESSION_COOKIE_SECURE = True
+#     CSRF_COOKIE_SECURE = True
+#     SECURE_HSTS_SECONDS = 31536000
+#     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+#     SECURE_HSTS_PRELOAD = True
+#     SECURE_BROWSER_XSS_FILTER = True
+#     SECURE_CONTENT_TYPE_NOSNIFF = True
+#     X_FRAME_OPTIONS = 'DENY'
 
