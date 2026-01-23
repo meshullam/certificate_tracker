@@ -1,212 +1,267 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth import authenticate, login, logout
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
-from django.contrib.auth.hashers import make_password
-from django.shortcuts import render, redirect, get_object_or_404
 
 
-# ✅ Only allow superusers
+# ==================================================================
+# CUSTOM DECORATOR - Require Superuser Access
+# ==================================================================
+
 def superuser_required(view_func):
-    decorated_view_func = user_passes_test(lambda u: u.is_superuser, login_url='adminpanel_login')(view_func)
-    return decorated_view_func
+    """
+    Decorator that requires user to be a superuser.
+    Redirects to login page if not authenticated or not superuser.
+    """
+    decorated = login_required(login_url='adminpanel_login')(view_func)
+    decorated = user_passes_test(
+        lambda u: u.is_superuser,
+        login_url='adminpanel_login'
+    )(decorated)
+    return decorated
 
+
+# ==================================================================
+# AUTHENTICATION VIEWS
+# ==================================================================
 
 def admin_login(request):
-    """Custom login for superuser/admin only."""
+    """
+    Custom login view for superuser/admin only.
+    Only users with is_superuser=True can access the admin panel.
+    """
+    # If already logged in and is superuser, redirect to dashboard
     if request.user.is_authenticated and request.user.is_superuser:
         return redirect('admin_dashboard')
 
     if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
+        username = request.POST.get('username', '').strip()
+        password = request.POST.get('password', '').strip()
+        
+        # Authenticate user
         user = authenticate(request, username=username, password=password)
 
         if user is not None and user.is_superuser:
             login(request, user)
+            messages.success(request, f'Welcome back, {user.username}!')
             return redirect('admin_dashboard')
         else:
             messages.error(request, 'Access denied. Only system administrators can log in.')
 
-    # ✅ Correct template reference
     return render(request, 'admin_panel/login.html')
 
 
 def admin_logout(request):
-    """Logout the admin and redirect to login."""
+    """
+    Logout the admin user and redirect to login page.
+    """
     logout(request)
+    messages.info(request, 'You have been logged out successfully.')
     return redirect('adminpanel_login')
 
 
+# ==================================================================
+# DASHBOARD
+# ==================================================================
+
 @superuser_required
 def dashboard(request):
+    """
+    Admin dashboard showing user statistics.
+    """
     total_users = User.objects.count()
     active_users = User.objects.filter(is_active=True).count()
     inactive_users = total_users - active_users
+    staff_users = User.objects.filter(is_staff=True).count()
 
     context = {
         'total_users': total_users,
         'active_users': active_users,
         'inactive_users': inactive_users,
+        'staff_users': staff_users,
     }
     return render(request, 'admin_panel/dashboard.html', context)
 
 
-@superuser_required
-def manage_users(request):
-    users = User.objects.all().order_by('username')
-    return render(request, 'admin_panel/manage_users.html', {'users': users})
+# ==================================================================
+# USER MANAGEMENT - LIST & SEARCH
+# ==================================================================
 
-# -- Manage users list --
 @superuser_required
 def manage_users(request):
+    """
+    Display and search users.
+    Supports search by username or email.
+    """
     query = request.GET.get('q', '').strip()
+    
+    # Get all users, ordered by username
     users = User.objects.all().order_by('username')
+    
+    # Apply search filter if query exists
     if query:
-        users = users.filter(username__icontains=query) | users.filter(email__icontains=query)
-    return render(request, 'admin_panel/manage_users.html', {'users': users, 'query': query})
+        users = users.filter(
+            username__icontains=query
+        ) | users.filter(
+            email__icontains=query
+        )
+    
+    context = {
+        'users': users,
+        'query': query,
+    }
+    return render(request, 'admin_panel/manage_users.html', context)
 
-# -- Add user --
+
+# ==================================================================
+# USER MANAGEMENT - CREATE
+# ==================================================================
+
 @superuser_required
 def add_user(request):
+    """
+    Create a new user with validation.
+    """
     if request.method == 'POST':
         username = request.POST.get('username', '').strip()
         email = request.POST.get('email', '').strip()
         password = request.POST.get('password', '').strip()
-        is_staff = True if request.POST.get('is_staff') == 'on' else False
-        is_active = True if request.POST.get('is_active') == 'on' else True
+        is_staff = request.POST.get('is_staff') == 'on'
+        is_active = request.POST.get('is_active') == 'on'
 
-        # basic validation
-        if not username or not password:
-            messages.error(request, "Username and password are required.")
+        # Validation
+        if not username:
+            messages.error(request, 'Username is required.')
+            return redirect('add_user')
+        
+        if not password:
+            messages.error(request, 'Password is required.')
+            return redirect('add_user')
+        
+        if len(password) < 8:
+            messages.error(request, 'Password must be at least 8 characters long.')
             return redirect('add_user')
 
+        # Check if username already exists
         if User.objects.filter(username=username).exists():
-            messages.error(request, "Username already exists.")
+            messages.error(request, f'Username "{username}" already exists.')
             return redirect('add_user')
 
-        user = User.objects.create_user(username=username, email=email, password=password)
-        user.is_staff = is_staff
-        user.is_active = is_active
-        user.save()
-        messages.success(request, f"User '{username}' created successfully.")
-        return redirect('manage_users')
+        # Create user
+        try:
+            user = User.objects.create_user(
+                username=username,
+                email=email,
+                password=password
+            )
+            user.is_staff = is_staff
+            user.is_active = is_active
+            user.save()
+            
+            messages.success(request, f'User "{username}" created successfully.')
+            return redirect('manage_users')
+        
+        except Exception as e:
+            messages.error(request, f'Error creating user: {str(e)}')
+            return redirect('add_user')
 
     return render(request, 'admin_panel/add_user.html')
 
 
-# -- Edit user --
+# ==================================================================
+# USER MANAGEMENT - UPDATE
+# ==================================================================
+
 @superuser_required
 def edit_user(request, user_id):
+    """
+    Edit user details (email, staff status, active status).
+    Username cannot be changed for security reasons.
+    """
     user = get_object_or_404(User, pk=user_id)
+    
     if request.method == 'POST':
         email = request.POST.get('email', '').strip()
-        is_staff = True if request.POST.get('is_staff') == 'on' else False
-        is_active = True if request.POST.get('is_active') == 'on' else True
+        is_staff = request.POST.get('is_staff') == 'on'
+        is_active = request.POST.get('is_active') == 'on'
 
+        # Update user
         user.email = email
         user.is_staff = is_staff
         user.is_active = is_active
         user.save()
-        messages.success(request, f"User '{user.username}' updated.")
+        
+        messages.success(request, f'User "{user.username}" updated successfully.')
         return redirect('manage_users')
 
-    return render(request, 'admin_panel/edit_user.html', {'user': user})
+    context = {'user': user}
+    return render(request, 'admin_panel/edit_user.html', context)
 
 
-# -- Delete user --
-@superuser_required
-def delete_user(request, user_id):
-    user = get_object_or_404(User, pk=user_id)
-    username = user.username
-    if request.method == 'POST':
-        user.delete()
-        messages.success(request, f"User '{username}' deleted.")
-        return redirect('manage_users')
+# ==================================================================
+# USER MANAGEMENT - PASSWORD RESET
+# ==================================================================
 
-    # confirm page (simple)
-    return render(request, 'admin_panel/confirm_delete.html', {'user': user})
-
-
-# -- Reset password --
 @superuser_required
 def reset_password(request, user_id):
+    """
+    Reset a user's password.
+    Requires password confirmation for security.
+    """
     user = get_object_or_404(User, pk=user_id)
+    
     if request.method == 'POST':
         new_password = request.POST.get('new_password', '').strip()
         new_password2 = request.POST.get('new_password2', '').strip()
+        
+        # Validation
         if not new_password:
-            messages.error(request, "Password cannot be empty.")
+            messages.error(request, 'Password cannot be empty.')
             return redirect('reset_password', user_id=user_id)
+        
+        if len(new_password) < 8:
+            messages.error(request, 'Password must be at least 8 characters long.')
+            return redirect('reset_password', user_id=user_id)
+        
         if new_password != new_password2:
-            messages.error(request, "Passwords do not match.")
+            messages.error(request, 'Passwords do not match.')
             return redirect('reset_password', user_id=user_id)
 
+        # Reset password
         user.set_password(new_password)
         user.save()
-        messages.success(request, f"Password updated for {user.username}.")
+        
+        messages.success(request, f'Password reset successfully for "{user.username}".')
         return redirect('manage_users')
 
-    return render(request, 'admin_panel/reset_password.html', {'user': user})
-
-@login_required(login_url='adminpanel_login')
-@user_passes_test(lambda u: u.is_superuser)
-def add_user(request):
-    """Create a new user"""
-    if request.method == 'POST':
-        username = request.POST.get('username')
-        email = request.POST.get('email')
-        password = request.POST.get('password')
-
-        if User.objects.filter(username=username).exists():
-            messages.error(request, 'Username already exists!')
-        else:
-            User.objects.create_user(username=username, email=email, password=password)
-            messages.success(request, 'User added successfully.')
-            return redirect('manage_users')
-
-    return render(request, 'admin_panel/add_user.html')
+    context = {'user': user}
+    return render(request, 'admin_panel/reset_password.html', context)
 
 
-@login_required(login_url='adminpanel_login')
-@user_passes_test(lambda u: u.is_superuser)
-def edit_user(request, user_id):
-    """Edit user details"""
-    user = get_object_or_404(User, id=user_id)
+# ==================================================================
+# USER MANAGEMENT - DELETE
+# ==================================================================
 
-    if request.method == 'POST':
-        user.username = request.POST.get('username')
-        user.email = request.POST.get('email')
-        user.is_active = 'is_active' in request.POST
-        user.save()
-        messages.success(request, 'User updated successfully.')
-        return redirect('manage_users')
-
-    return render(request, 'admin_panel/edit_user.html', {'user': user})
-
-
-@login_required(login_url='adminpanel_login')
-@user_passes_test(lambda u: u.is_superuser)
-def reset_password(request, user_id):
-    """Reset a user’s password"""
-    user = get_object_or_404(User, id=user_id)
-
-    if request.method == 'POST':
-        new_password = request.POST.get('new_password')
-        user.set_password(new_password)
-        user.save()
-        messages.success(request, f"Password reset for {user.username}")
-        return redirect('manage_users')
-
-    return render(request, 'admin_panel/reset_password.html', {'user': user})
-
-
-@login_required(login_url='adminpanel_login')
-@user_passes_test(lambda u: u.is_superuser)
+@superuser_required
 def delete_user(request, user_id):
-    """Delete a user"""
-    user = get_object_or_404(User, id=user_id)
-    user.delete()
-    messages.success(request, f"User {user.username} deleted successfully.")
-    return redirect('manage_users')
+    """
+    Delete a user after confirmation.
+    Prevents deletion of superuser accounts for safety.
+    """
+    user = get_object_or_404(User, pk=user_id)
+    
+    # Prevent deleting superuser accounts
+    if user.is_superuser:
+        messages.error(request, 'Cannot delete superuser accounts for security reasons.')
+        return redirect('manage_users')
+    
+    if request.method == 'POST':
+        username = user.username
+        user.delete()
+        messages.success(request, f'User "{username}" deleted successfully.')
+        return redirect('manage_users')
+
+    # Show confirmation page
+    context = {'user': user}
+    return render(request, 'admin_panel/confirm_delete.html', context)
