@@ -1,27 +1,86 @@
 from django.contrib import admin
-from django.contrib import admin
-from django.contrib import admin
-from django.contrib.admin import AdminSite
-
-# Custom AdminSite class to inject your CSS
-class CustomAdminSite(AdminSite):
-    site_header = "Certificate Tracker Administration"
-    site_title = "Certificate Tracker Admin"
-    index_title = "Welcome to the Registry Dashboard"
-
-    # Attach your custom CSS
-    class Media:
-        css = {
-            'all': ('registry/css/admin_theme.css',)
-        }
-
-# Replace Django's default admin site with your custom one
-admin.site = CustomAdminSite()
+from .models import CertificateRecord, ActivityLog, DashboardStats
 
 
-# Customizing the admin site
-admin.site.site_header = "Certificate Tracker Administration"
-admin.site.site_title = "Certificate Tracker Admin Portal"
-admin.site.index_title = "Welcome to the Certificate Tracker System"
+@admin.register(CertificateRecord)
+class CertificateRecordAdmin(admin.ModelAdmin):
+    list_display = [
+        'index_number', 
+        'name', 
+        'programme', 
+        'department', 
+        'status', 
+        'upload_date',
+        'uploaded_by',
+        'collected_by'
+    ]
+    list_filter = ['status', 'department', 'programme', 'upload_date']
+    search_fields = ['index_number', 'name', 'programme', 'department']
+    readonly_fields = ['upload_date', 'collected_at']
+    list_per_page = 50
+    date_hierarchy = 'upload_date'
+    
+    fieldsets = (
+        ('Student Information', {
+            'fields': ('name', 'index_number', 'programme', 'department')
+        }),
+        ('Certificate Details', {
+            'fields': ('slip_number', 'status', 'collected_at')
+        }),
+        ('Tracking Information', {
+            'fields': ('upload_date', 'uploaded_by', 'collected_by'),
+            'classes': ('collapse',)
+        }),
+    )
 
-# Register your models here.
+
+@admin.register(ActivityLog)
+class ActivityLogAdmin(admin.ModelAdmin):
+    list_display = [
+        'user',
+        'action',
+        'description',
+        'timestamp',
+        'ip_address'
+    ]
+    list_filter = ['action', 'timestamp', 'user']
+    search_fields = ['user__username', 'description', 'ip_address']
+    readonly_fields = ['user', 'action', 'description', 'timestamp', 'ip_address', 'certificate']
+    list_per_page = 100
+    date_hierarchy = 'timestamp'
+    
+    def has_add_permission(self, request):
+        # Don't allow manual creation
+        return False
+    
+    def has_change_permission(self, request, obj=None):
+        # Don't allow editing
+        return False
+
+
+@admin.register(DashboardStats)
+class DashboardStatsAdmin(admin.ModelAdmin):
+    list_display = [
+        'date',
+        'total_certificates',
+        'collected_certificates',
+        'pending_certificates',
+        'total_uploads_today',
+        'total_collections_today',
+        'active_users',
+        'last_updated'
+    ]
+    readonly_fields = [
+        'date',
+        'total_certificates',
+        'collected_certificates', 
+        'pending_certificates',
+        'total_uploads_today',
+        'total_collections_today',
+        'active_users',
+        'last_updated'
+    ]
+    list_per_page = 30
+    
+    def has_add_permission(self, request):
+        return False

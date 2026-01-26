@@ -1,27 +1,110 @@
 <!DOCTYPE html>
-
-
-
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Certificate Tracker{% endblock %}</title>
     {% load static %}
-    <link rel="stylesheet" href="{% static 'registry/admin.css' %}">
+    <link rel="stylesheet" href="{% static 'registry/css/main.css' %}">
 </head>
 <body>
-    <header style="background-color: #0d2040; color: white; padding: 15px;">
-        <h1>Certificate & Result Slip Tracker</h1>
-    </header>
+    <!-- Top Navigation -->
+    {% if request.user.is_authenticated %}
+    <nav class="top-nav">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <img src="{% static 'registry/logo.png' %}" alt="Logo">
+                <a href="{% url 'dashboard' %}" class="nav-brand-text">Certificate Tracker</a>
+            </div>
 
-    <main style="padding: 20px;">
+            <button class="mobile-menu-btn" onclick="toggleMobileMenu()">☰</button>
+
+            <ul class="nav-menu" id="navMenu">
+                <li class="nav-item">
+                    <a href="{% url 'dashboard' %}" class="nav-link {% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                        📊 Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a href="{% url 'upload_excel' %}" class="nav-link {% if request.resolver_match.url_name == 'upload_excel' %}active{% endif %}">
+                        📤 Certificates
+                    </a>
+                </li>
+                {% if request.user.is_superuser %}
+                <li class="nav-item">
+                    <a href="{% url 'admin_dashboard' %}" class="nav-link">
+                        ⚙️ Admin Panel
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+
+            <div class="nav-user">
+                <div class="user-avatar">{{ request.user.username|slice:":1"|upper }}</div>
+                <span class="user-name">{{ request.user.username }}</span>
+                <form method="post" action="{% url 'logout' %}" style="margin: 0;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-secondary btn-small">Logout</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+
+    <!-- Messages -->
+    {% if messages %}
+    <div class="messages-container">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            {{ message }}
+            <button type="button" class="close-btn" onclick="this.parentElement.remove()">×</button>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Main Content -->
+    <div class="content-wrapper">
         {% block content %}
         {% endblock %}
-    </main>
+    </div>
 
-    <footer style="background-color: #ff8c00; color: white; text-align: center; padding: 10px; position: fixed; bottom: 0; width: 100%;">
+    <!-- Footer -->
+    <footer>
         &copy; {{ current_year }} Registry Department | The Polytechnic
     </footer>
+
+    <!-- JavaScript -->
+    <script>
+        // Mobile menu toggle
+        function toggleMobileMenu() {
+            const menu = document.getElementById('navMenu');
+            menu.classList.toggle('active');
+        }
+
+        // Close mobile menu when clicking outside
+        document.addEventListener('click', function(event) {
+            const nav = document.querySelector('.top-nav');
+            const menu = document.getElementById('navMenu');
+            const btn = document.querySelector('.mobile-menu-btn');
+            
+            if (!nav.contains(event.target) && menu.classList.contains('active')) {
+                menu.classList.remove('active');
+            }
+        });
+
+        // Auto-hide messages after 5 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(function(alert) {
+                setTimeout(function() {
+                    alert.style.opacity = '0';
+                    setTimeout(function() {
+                        alert.remove();
+                    }, 300);
+                }, 5000);
+            });
+        });
+    </script>
 </body>
 </html>

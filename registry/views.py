@@ -4,12 +4,13 @@ import openpyxl
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.core.paginator import Paginator
-from django.db.models import Q
+from django.db.models import Q, Count
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from django.utils import timezone
+from datetime import timedelta
 
-from .models import CertificateRecord
+from .models import CertificateRecord, ActivityLog, DashboardStats
 from .forms import ExcelUploadForm
 
 # ==================================================================
@@ -19,9 +20,91 @@ logger = logging.getLogger(__name__)
 
 
 # ==================================================================
+# HELPER FUNCTION - Get Client IP
+# ==================================================================
+def get_client_ip(request):
+    """Extract client IP address from request"""
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    if x_forwarded_for:
+        ip = x_forwarded_for.split(',')[0]
+    else:
+        ip = request.META.get('REMOTE_ADDR')
+    return ip
+
+
+# ==================================================================
+# DASHBOARD
+# ==================================================================
+@login_required
+def dashboard(request):
+    """
+    Main dashboard showing statistics and recent activities.
+    """
+    # Get or create today's stats
+    stats = DashboardStats.get_or_create_today_stats()
+    
+    # Get recent activities (last 20)
+    recent_activities = ActivityLog.get_recent_activities(limit=20)
+    
+    # Get user's recent activities
+    user_activities = ActivityLog.get_user_activities(request.user, limit=10)
+    
+    # Department breakdown
+    department_stats = CertificateRecord.objects.values('department').annotate(
+        total=Count('id'),
+        collected=Count('id', filter=Q(status='Collected')),
+        pending=Count('id', filter=Q(status='Not Collected'))
+    ).order_by('-total')[:5]
+    
+    # Weekly trend (last 7 days)
+    today = timezone.now().date()
+    week_ago = today - timedelta(days=7)
+    
+    daily_uploads = []
+    daily_collections = []
+    labels = []
+    
+    for i in range(7):
+        date = week_ago + timedelta(days=i)
+        labels.append(date.strftime('%a'))
+        
+        uploads = ActivityLog.objects.filter(
+            timestamp__date=date,
+            action='UPLOAD'
+        ).count()
+        daily_uploads.append(uploads)
+        
+        collections = ActivityLog.objects.filter(
+            timestamp__date=date,
+            action='COLLECT'
+        ).count()
+        daily_collections.append(collections)
+    
+    context = {
+        'stats': stats,
+        'recent_activities': recent_activities,
+        'user_activities': user_activities,
+        'department_stats': department_stats,
+        'chart_labels': labels,
+        'chart_uploads': daily_uploads,
+        'chart_collections': daily_collections,
+        'current_year': timezone.now().year,
+    }
+    
+    # Log dashboard view
+    ActivityLog.log_activity(
+        user=request.user,
+        action='SEARCH',
+        description='Viewed dashboard',
+        ip_address=get_client_ip(request)
+    )
+    
+    return render(request, 'registry/dashboard.html', context)
+
+
+# ==================================================================
 # CERTIFICATE UPLOAD & MANAGEMENT
 # ==================================================================
-
 @login_required
 def upload_excel(request):
     """
@@ -138,6 +221,7 @@ def upload_excel(request):
                             'department': department,
                             'slip_number': slip_number,
                             'status': 'Not Collected',
+                            'uploaded_by': request.user,  # Track who uploaded
                         }
                     )
                     
@@ -149,6 +233,14 @@ def upload_excel(request):
                 except Exception as row_error:
                     logger.error(f"Error processing row {index + 2}: {row_error}")
                     skipped_count += 1
+
+            # Log activity
+            ActivityLog.log_activity(
+                user=request.user,
+                action='UPLOAD',
+                description=f"Uploaded {excel_file.name}: {created_count} created, {updated_count} updated, {skipped_count} skipped",
+                ip_address=get_client_ip(request)
+            )
 
             # Provide feedback
             success_msg = f"Upload complete! Created: {created_count}, Updated: {updated_count}, Skipped: {skipped_count}"
@@ -178,6 +270,14 @@ def upload_excel(request):
             Q(name__icontains=search_query) | 
             Q(index_number__icontains=search_query)
         )
+        
+        # Log search activity
+        ActivityLog.log_activity(
+            user=request.user,
+            action='SEARCH',
+            description=f"Searched for: {search_query}",
+            ip_address=get_client_ip(request)
+        )
 
     # Pagination - 10 records per page
     paginator = Paginator(records, 10)
@@ -197,7 +297,6 @@ def upload_excel(request):
 # ==================================================================
 # CERTIFICATE COLLECTION
 # ==================================================================
-
 @login_required
 def collect_certificate(request, pk):
     """
@@ -206,11 +305,19 @@ def collect_certificate(request, pk):
     record = get_object_or_404(CertificateRecord, pk=pk)
     
     if request.method == 'POST':
-        record.status = "Collected"
-        record.collected_at = timezone.now()
-        record.save()
+        # Mark as collected
+        record.mark_collected(request.user)  # Using model method
         
-        logger.info(f"Certificate collected: {record.index_number} - {record.name}")
+        # Log activity
+        ActivityLog.log_activity(
+            user=request.user,
+            action='COLLECT',
+            description=f"Collected certificate for {record.name} ({record.index_number})",
+            certificate=record,
+            ip_address=get_client_ip(request)
+        )
+        
+        logger.info(f"Certificate collected: {record.index_number} - {record.name} by {request.user.username}")
         messages.success(request, f"{record.name}'s certificate marked as collected.")
 
         # Preserve search query in redirect
@@ -226,7 +333,6 @@ def collect_certificate(request, pk):
 # ==================================================================
 # REPORT GENERATION
 # ==================================================================
-
 @login_required
 def generate_report(request):
     """
@@ -259,8 +365,10 @@ def generate_report(request):
             'Department', 
             'Slip Number', 
             'Status', 
-            'Upload Date', 
-            'Collected At'
+            'Upload Date',
+            'Uploaded By',
+            'Collected At',
+            'Collected By'
         ]
         ws.append(headers)
 
@@ -274,7 +382,9 @@ def generate_report(request):
                 rec.slip_number or '',
                 rec.status,
                 rec.upload_date.strftime("%Y-%m-%d %H:%M") if rec.upload_date else '',
-                rec.collected_at.strftime("%Y-%m-%d %H:%M") if rec.collected_at else ''
+                rec.uploaded_by.username if rec.uploaded_by else '',
+                rec.collected_at.strftime("%Y-%m-%d %H:%M") if rec.collected_at else '',
+                rec.collected_by.username if rec.collected_by else ''
             ])
 
         # Prepare HTTP response
@@ -287,7 +397,15 @@ def generate_report(request):
         # Save workbook to response
         wb.save(response)
         
-        logger.info(f"Report generated: {filename} with {records.count()} records")
+        # Log activity
+        ActivityLog.log_activity(
+            user=request.user,
+            action='DOWNLOAD_REPORT',
+            description=f"Downloaded {status} certificates report ({records.count()} records)",
+            ip_address=get_client_ip(request)
+        )
+        
+        logger.info(f"Report generated: {filename} with {records.count()} records by {request.user.username}")
         return response
 
     except Exception as e:

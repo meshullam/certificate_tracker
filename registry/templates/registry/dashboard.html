@@ -1,0 +1,399 @@
+{% extends 'registry/base.html' %}
+{% load static %}
+
+{% block title %}Dashboard - Certificate Tracker{% endblock %}
+
+{% block content %}
+<style>
+/* Dashboard-specific styles */
+.dashboard-header {
+    background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-hover) 100%);
+    color: white;
+    padding: 30px;
+    border-radius: var(--radius-lg);
+    margin-bottom: var(--spacing-xl);
+    box-shadow: var(--shadow-lg);
+}
+
+.dashboard-header h1 {
+    margin: 0;
+    font-size: 2rem;
+}
+
+.dashboard-header p {
+    margin: 5px 0 0 0;
+    opacity: 0.9;
+}
+
+.user-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 15px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+}
+
+.stat-card {
+    background: white;
+    padding: 25px;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    border-left: 4px solid var(--color-primary);
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--shadow-lg);
+}
+
+.stat-card.success {
+    border-left-color: var(--color-success);
+}
+
+.stat-card.warning {
+    border-left-color: var(--color-warning);
+}
+
+.stat-card.info {
+    border-left-color: var(--color-info);
+}
+
+.stat-card.secondary {
+    border-left-color: var(--color-secondary);
+}
+
+.stat-icon {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: var(--color-dark-gray);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 5px;
+}
+
+.stat-value {
+    font-size: 2.5rem;
+    font-weight: bold;
+    color: var(--color-primary);
+    margin: 5px 0;
+}
+
+.stat-card.success .stat-value {
+    color: var(--color-success);
+}
+
+.stat-card.warning .stat-value {
+    color: var(--color-warning);
+}
+
+.stat-card.info .stat-value {
+    color: var(--color-info);
+}
+
+.stat-trend {
+    font-size: 0.85rem;
+    color: var(--color-dark-gray);
+}
+
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+}
+
+.activity-feed {
+    background: white;
+    padding: 25px;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+}
+
+.activity-item {
+    padding: 15px;
+    border-left: 3px solid var(--color-gray);
+    margin-bottom: 15px;
+    background: #f9f9f9;
+    border-radius: var(--radius-sm);
+    transition: background var(--transition-fast);
+}
+
+.activity-item:hover {
+    background: #f0f0f0;
+}
+
+.activity-item.upload {
+    border-left-color: var(--color-info);
+}
+
+.activity-item.collect {
+    border-left-color: var(--color-success);
+}
+
+.activity-item.download {
+    border-left-color: var(--color-secondary);
+}
+
+.activity-item.login {
+    border-left-color: var(--color-primary);
+}
+
+.activity-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.activity-user {
+    font-weight: bold;
+    color: var(--color-primary);
+}
+
+.activity-time {
+    font-size: 0.85rem;
+    color: var(--color-dark-gray);
+}
+
+.activity-description {
+    font-size: 0.9rem;
+    color: var(--color-text);
+}
+
+.quick-actions {
+    display: grid;
+    gap: var(--spacing-md);
+}
+
+.action-btn {
+    display: block;
+    padding: 15px;
+    background: white;
+    border: 2px solid var(--color-gray);
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    color: var(--color-text);
+    font-weight: bold;
+    text-align: center;
+    transition: all var(--transition-fast);
+}
+
+.action-btn:hover {
+    background: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+    transform: translateY(-2px);
+}
+
+.action-btn.primary {
+    background: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+}
+
+.action-btn.primary:hover {
+    background: var(--color-primary-hover);
+}
+
+.department-table {
+    width: 100%;
+    margin-top: 15px;
+}
+
+.department-table th,
+.department-table td {
+    padding: 10px;
+    text-align: left;
+}
+
+.progress-bar {
+    background: var(--color-light-gray);
+    height: 8px;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 5px;
+}
+
+.progress-fill {
+    height: 100%;
+    background: var(--color-success);
+    transition: width 0.5s ease;
+}
+
+@media (max-width: 768px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .user-info {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+}
+</style>
+
+<div class="dashboard-header">
+    <h1>📊 Dashboard</h1>
+    <p>Welcome back, {{ request.user.username }}!</p>
+    <div class="user-info">
+        <span>Last updated: {{ stats.last_updated|date:"M d, Y H:i" }}</span>
+        <div>
+            <a href="{% url 'upload_excel' %}" class="btn btn-secondary">Upload Certificates</a>
+            <a href="{% url 'logout' %}" class="btn btn-primary" style="margin-left: 10px;">Logout</a>
+        </div>
+    </div>
+</div>
+
+<div class="container">
+    <!-- Statistics Cards -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">📁</div>
+            <div class="stat-label">Total Certificates</div>
+            <div class="stat-value">{{ stats.total_certificates }}</div>
+            <div class="stat-trend">All time records</div>
+        </div>
+
+        <div class="stat-card success">
+            <div class="stat-icon">✅</div>
+            <div class="stat-label">Collected</div>
+            <div class="stat-value">{{ stats.collected_certificates }}</div>
+            <div class="stat-trend">
+                {% widthratio stats.collected_certificates stats.total_certificates 100 %}% of total
+            </div>
+        </div>
+
+        <div class="stat-card warning">
+            <div class="stat-icon">⏳</div>
+            <div class="stat-label">Pending Collection</div>
+            <div class="stat-value">{{ stats.pending_certificates }}</div>
+            <div class="stat-trend">Awaiting collection</div>
+        </div>
+
+        <div class="stat-card info">
+            <div class="stat-icon">📤</div>
+            <div class="stat-label">Uploads Today</div>
+            <div class="stat-value">{{ stats.total_uploads_today }}</div>
+            <div class="stat-trend">{{ stats.total_collections_today }} collected today</div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard Grid -->
+    <div class="dashboard-grid">
+        <!-- Recent Activities -->
+        <div class="activity-feed">
+            <h3>📋 Recent Activities</h3>
+            {% if recent_activities %}
+                {% for activity in recent_activities %}
+                <div class="activity-item {{ activity.action|lower }}">
+                    <div class="activity-header">
+                        <span class="activity-user">{{ activity.user.username }}</span>
+                        <span class="activity-time">{{ activity.timestamp|timesince }} ago</span>
+                    </div>
+                    <div class="activity-description">
+                        <strong>{{ activity.get_action_display }}:</strong> {{ activity.description }}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p>No recent activities.</p>
+            {% endif %}
+        </div>
+
+        <!-- Quick Actions -->
+        <div>
+            <div class="card">
+                <h3>⚡ Quick Actions</h3>
+                <div class="quick-actions">
+                    <a href="{% url 'upload_excel' %}" class="action-btn primary">
+                        📤 Upload Certificates
+                    </a>
+                    <a href="{% url 'upload_excel' %}" class="action-btn">
+                        🔍 Search Records
+                    </a>
+                    <a href="{% url 'generate_report' %}?status=Collected" class="action-btn">
+                        📊 Collected Report
+                    </a>
+                    <a href="{% url 'generate_report' %}?status=Not Collected" class="action-btn">
+                        📋 Pending Report
+                    </a>
+                </div>
+            </div>
+
+            <!-- User's Recent Activity -->
+            <div class="card" style="margin-top: 20px;">
+                <h3>👤 Your Recent Activity</h3>
+                {% if user_activities %}
+                    {% for activity in user_activities|slice:":5" %}
+                    <div class="activity-item {{ activity.action|lower }}">
+                        <div class="activity-header">
+                            <span>{{ activity.get_action_display }}</span>
+                            <span class="activity-time">{{ activity.timestamp|timesince }} ago</span>
+                        </div>
+                        <div class="activity-description">
+                            {{ activity.description }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p>No activities yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Department Statistics -->
+    <div class="card">
+        <h3>🏛️ Top Departments by Certificates</h3>
+        {% if department_stats %}
+        <table class="department-table">
+            <thead>
+                <tr>
+                    <th>Department</th>
+                    <th>Total</th>
+                    <th>Collected</th>
+                    <th>Pending</th>
+                    <th>Collection Rate</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for dept in department_stats %}
+                <tr>
+                    <td><strong>{{ dept.department }}</strong></td>
+                    <td>{{ dept.total }}</td>
+                    <td style="color: var(--color-success);">{{ dept.collected }}</td>
+                    <td style="color: var(--color-warning);">{{ dept.pending }}</td>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <span>{% widthratio dept.collected dept.total 100 %}%</span>
+                            <div class="progress-bar" style="width: 100px;">
+                                <div class="progress-fill" style="width: {% widthratio dept.collected dept.total 100 %}%;"></div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p>No department data available.</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
