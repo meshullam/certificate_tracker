@@ -1,6 +1,22 @@
-# Certificate Tracker - Core Dependencies
+# ==================================================================
+# Certificate Tracker - Production Dependencies
+# ==================================================================
+
+# Core Framework
 Django==5.2.5
+
+# Database
 psycopg2-binary==2.9.11
+
+# Environment Variables
 python-dotenv==1.1.1
+
+# Data Processing
 pandas==2.2.3
 openpyxl==3.1.5
+
+# Production Server
+gunicorn==21.2.0
+
+# Static Files (Production)
+whitenoise==6.7.0
