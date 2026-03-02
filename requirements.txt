@@ -1,22 +1,38 @@
-# ==================================================================
-# Certificate Tracker - Production Dependencies
-# ==================================================================
-
-# Core Framework
+asgiref==3.9.1
+Brotli==1.1.0
+cffi==2.0.0
+colorama==0.4.6
+cssselect2==0.8.0
 Django==5.2.5
-
-# Database
-psycopg2-binary==2.9.11
-
-# Environment Variables
-python-dotenv==1.1.1
-
-# Data Processing
-pandas==2.2.3
-openpyxl==3.1.5
-
-# Production Server
+django-cors-headers==4.9.0
+et_xmlfile==2.0.0
+fonttools==4.60.1
 gunicorn==21.2.0
-
-# Static Files (Production)
+jaclang==0.8.7
+mypy==1.18.2
+mypy_extensions==1.1.0
+numpy==2.4.1
+openpyxl==3.1.5
+packaging==26.0
+pandas==2.2.3
+pathspec==0.12.1
+pdfkit==1.0.0
+pillow==11.3.0
+psycopg2-binary==2.9.11
+pycparser==2.23
+pydyf==0.11.0
+pyphen==0.17.2
+python-dateutil==2.9.0.post0
+python-dotenv==1.1.1
+pytz==2025.2
+qrcode==8.2
+six==1.17.0
+sqlparse==0.5.3
+tinycss2==1.4.0
+tinyhtml5==2.0.0
+typing_extensions==4.15.0
+tzdata==2025.2
+weasyprint==66.0
+webencodings==0.5.1
 whitenoise==6.7.0
+zopfli==0.2.3.post1

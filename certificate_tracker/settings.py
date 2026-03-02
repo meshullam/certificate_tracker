@@ -26,6 +26,18 @@ DEBUG = os.getenv('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', 'localhost,127.0.0.1').split(',')
 CSRF_TRUSTED_ORIGINS = [origin.strip() for origin in os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',') if origin.strip()]
+CORS_ALLOWED_ORIGINS = [
+    "https://kisumupoly.ac.ke",   # ← Replace with your website URL
+]
+
+# Only allow GET requests through CORS (no POST, PUT, DELETE)
+CORS_ALLOW_METHODS = [
+    "GET",
+]
+
+# Only allow the public search URL to be accessed cross-origin.
+# All other URLs (admin, upload, dashboard) are blocked by CORS.
+CORS_URLS_REGEX = r'^/registry/api/certificate-search/$'
 
 # ==================================================================
 # APPLICATION DEFINITION
@@ -41,9 +53,11 @@ INSTALLED_APPS = [
     'registry',
     'accounts',
     'admin_panel',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',  # Serve static files
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -198,6 +212,13 @@ LOGGING = {
             'propagate': False,
         },
     },
+}
+
+CACHES = {
+    "default": {
+        "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
+        "LOCATION": "certificate-tracker-cache",
+    }
 }
 
 # ==================================================================
