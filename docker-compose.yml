@@ -2,7 +2,6 @@
 # Certificate Tracker - Docker Compose Configuration
 # ==================================================================
 
-version: '3.8'
 
 services:
 
@@ -60,7 +59,7 @@ services:
     container_name: certificate_tracker_nginx
     restart: always
     ports:
-      - "80:80"
+      - "92:92"
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
       - static_volume:/app/staticfiles
